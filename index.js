@@ -3,20 +3,24 @@ const app=express();
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
-import { pipeline } from '@xenova/transformers';
-import {ChatGroq} from "@langchain/groq";
-import {z} from "zod";
-import {ChatPromptTemplate} from "@langchain/core/prompts";
-import {QdrantClient} from "@qdrant/js-client-rest";
+import { pipeline } from '@huggingface/transformers';
+import { ChatGroq } from "@langchain/groq";
+import { z } from "zod";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+import { QdrantClient } from "@qdrant/js-client-rest";
 app.use(cors());
 const PORT=process.env.PORT||8000;
-const model=await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
+const model=await pipeline('feature-extraction',
+     './models/all-MiniLM-L6-v2',
+     { local_files_only: true },  
+);
+
 async function embedQuery(text) {
     const result = await model(text, { pooling: 'mean', normalize: true });
     return Array.from(result.data);
 }
 async function embedDocuments(texts) {
-  const results = [];
+    const results = [];
     for (const text of texts) {
       const res = await model(text, { pooling: 'mean', normalize: true });
       results.push(Array.from(res.data));
@@ -34,9 +38,9 @@ const client=new QdrantClient({
 });
 
 const answer=z.object({
-    imp_words: z.string().describe("List the important legal terms or keywords that a Judiciary aspirant should remember from this context."),
-    description: z.string().describe("Provide a descriptive explanation based on the given context, relevant to the question asked."),
-    exact: z.string().describe("Quote the exact text from the context that directly answers the question.")
+    imp_words: z.string().describe("List the important legal terms or keywords that a Judiciary aspirant should remember from the context provided to you."),
+    description: z.string().describe("Provide a descriptive explanation based on the given context and query being asked."),
+    exact: z.string().describe("Quote the exact text from the act or code, which you can derive from the context that will be provided to you.")
 });
 
 const structuredLlm=llm.withStructuredOutput(answer);
@@ -50,10 +54,11 @@ async function generate(query,act){
     const pay=searchResult.map((result)=>["system", result.payload.text]);
     const prompt=ChatPromptTemplate.fromMessages([
     ["system",`You are an AI assistant which is designed
-      to help my sister Anika Tripathi who is a Law Student and wants to prepare for Judiciary exams in India.
-      You will be provided with context, and you need to answer accordingly in a structured way, the structure is already provided to you.
-      So, you just need to answer the questions based on the context, structure and the question provided to you. 
-      If the question provided is out of context, please ask the user to put relevant questions in the Box.`],
+      to help law students who are preparing for Judiciary exams in India.
+      You will be provided with context of the given act or code and according to the given query, you need to answer in a structured way, the structure will be already provided to you.
+      The structure will have three section-: 1.) imp_words-: the important words from the provided context and in relation to the query asked. 2.) description-: this section must have a long descriptive answer to the user's query.
+      3.) exact-: exact words as it is penned down in the code or act.
+      `],
     ...pay,
     ["human",`${query}`],
     ]);

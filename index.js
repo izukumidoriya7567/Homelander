@@ -10,9 +10,9 @@ import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { QdrantClient } from "@qdrant/js-client-rest";
 app.use(cors());
 const PORT=process.env.PORT||8000;
+process.env.HF_TOKEN=process.env.HF_TOKEN;
 const model=await pipeline('feature-extraction',
-     './models/all-MiniLM-L6-v2',
-     { local_files_only: true },  
+     'Xenova/all-MiniLM-L6-v2',  
 );
 
 async function embedQuery(text) {

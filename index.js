@@ -3,12 +3,13 @@ const app=express();
 import dotenv from "dotenv";
 dotenv.config();
 import cors from "cors";
-import { pipeline } from '@huggingface/transformers';
+import { pipeline } from '@xenova/transformers';
 import { ChatGroq } from "@langchain/groq";
 import { z } from "zod";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
 import { QdrantClient } from "@qdrant/js-client-rest";
 app.use(cors());
+app.use(express.json());
 const PORT=process.env.PORT||8000;
 process.env.HF_TOKEN=process.env.HF_TOKEN;
 const model=await pipeline('feature-extraction',
@@ -19,6 +20,7 @@ async function embedQuery(text) {
     const result = await model(text, { pooling: 'mean', normalize: true });
     return Array.from(result.data);
 }
+
 async function embedDocuments(texts) {
     const results = [];
     for (const text of texts) {
@@ -27,16 +29,20 @@ async function embedDocuments(texts) {
     }
     return results;
 }
+
 const llm=new ChatGroq({
     model:"llama-3.3-70b-versatile",
     temperature:0.0,
     apiKey:process.env.LLM_APIKEY,
 });
+
 const client=new QdrantClient({
     url:"https://d2abd0c8-b572-452f-9670-c776a382be87.us-east4-0.gcp.cloud.qdrant.io",
     apiKey:process.env.QDRANT_APIKEY,
 });
 
+const anika=await client.getCollections();
+console.log(anika);
 const answer=z.object({
     imp_words: z.string().describe("List the important legal terms or keywords that a Judiciary aspirant should remember from the context provided to you."),
     description: z.string().describe("Provide a descriptive explanation based on the given context and query being asked."),
@@ -73,10 +79,11 @@ async function generate(query,act){
 
 app.get("/",(req,res)=>{
     res.status(200).send("Do you think you have got the bullocks: William Butcher");
-})
-app.get("/:act/:query",async(req,res)=>{
+});
+
+app.post("/:act",async(req,res)=>{
     const act=req.params.act;
-    const query=req.params.query;
+    const query=req.body.query;
     const answer=await generate(query,act);
     console.log(answer);
     if(answer.type==="success"){
@@ -86,4 +93,5 @@ app.get("/:act/:query",async(req,res)=>{
       res.status(500).json({type:"error",content:answer.content});
     }
 })
+
 export default app;

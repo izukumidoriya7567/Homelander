@@ -62,6 +62,7 @@ async function generate(query,act){
     ["system",`You are an AI assistant which is designed
       to help law students who are preparing for Judiciary exams in India.
       You will be provided with context of the given act or code and according to the given query, you need to answer in a structured way, the structure will be already provided to you.
+      Sometimes, the context provided to you and the query might differ since we are using Embedding models, so there could be no logical answer from the context to the User's query, in that case answer accordingly.
       The structure will have three section-: 1.) imp_words-: the important words from the provided context and in relation to the query asked. 2.) description-: this section must have a long descriptive answer to the user's query.
       3.) exact-: exact words as it is penned down in the code or act.
       `],

@@ -37,7 +37,7 @@ const llm=new ChatGroq({
 });
 
 const client=new QdrantClient({
-    url:"https://d2abd0c8-b572-452f-9670-c776a382be87.us-east4-0.gcp.cloud.qdrant.io",
+    url:"https://6b494f89-6031-447d-8ced-514c531c3b14.us-east-1-1.aws.cloud.qdrant.io",
     apiKey:process.env.QDRANT_APIKEY,
 });
 
@@ -55,16 +55,15 @@ async function generate(query,act){
     const queryVector=await embedQuery(query);
     const searchResult=await client.search(`${act}`,{
         vector:queryVector,
-        limit:5,
+        limit:3,
     });
     const pay=searchResult.map((result)=>["system", result.payload.text]);
     const prompt=ChatPromptTemplate.fromMessages([
     ["system",`You are an AI assistant which is designed
       to help law students who are preparing for Judiciary exams in India.
       You will be provided with context of the given act or code and according to the given query, you need to answer in a structured way, the structure will be already provided to you.
-      Sometimes, the context provided to you and the query might differ since we are using Embedding models, so there could be no logical answer from the context to the User's query, in that case answer accordingly.
       The structure will have three section-: 1.) imp_words-: the important words from the provided context and in relation to the query asked. 2.) description-: this section must have a long descriptive answer to the user's query.
-      3.) exact-: exact words as it is penned down in the code or act.
+      3.) exact-: exact words as it is penned down in the code or act. Their maybe queries which are not related to any documents answer them accordingly.
       `],
     ...pay,
     ["human",`${query}`],
@@ -94,5 +93,6 @@ app.post("/:act",async(req,res)=>{
       res.status(500).json({type:"error",content:answer.content});
     }
 })
+
 
 export default app;
